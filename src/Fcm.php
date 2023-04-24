@@ -8,8 +8,6 @@ namespace Kawankoding\Fcm;
  */
 class Fcm
 {
-    const ENDPOINT = 'https://fcm.googleapis.com/fcm/send';
-
     protected $recipients;
     protected $topic;
     protected $data;
@@ -17,14 +15,22 @@ class Fcm
     protected $timeToLive;
     protected $priority;
     protected $package;
+    protected $android;
+    protected $apns;
+    protected $webpush;
+    protected $fcmOptions;
 
     protected $serverKey;
+    protected $endpoint;
 
     protected $responseLogEnabled = false;
 
-    public function __construct($serverKey)
+    public function __construct($serverKey, $projectId)
     {
         $this->serverKey = $serverKey;
+
+        $endpoint = 'https://fcm.googleapis.com/v1/projects/' . $projectId . '/messages:send';
+        $this->endpoint = $endpoint;
     }
 
     public function to($recipients)
@@ -90,37 +96,69 @@ class Fcm
         return $this;
     }
 
+    public function android($android = [])
+    {
+        $this->android = $android;
+
+        return $this;
+    }
+
+    public function apns($apns = [])
+    {
+        $this->apns = $apns;
+
+        return $this;
+    }
+
+    public function webpush($webpush = [])
+    {
+        $this->webpush = $webpush;
+
+        return $this;
+    }
+
+    public function fcmOptions($fcmOptions = [])
+    {
+        $this->fcmOptions = $fcmOptions;
+
+        return $this;
+    }
+
     public function send()
     {
         $payloads = [
-            'content_available' => true,
-            'priority' => isset($this->priority) ? $this->priority : 'high',
-            'data' => $this->data,
-            'notification' => $this->notification
+            'message' => [
+                'name' => '',
+                'data' => $this->data,
+                'notification' => $this->notification,
+                'android' => $this->android,
+                'apns' => $this->apns,
+                'webpush' => $this->webpush,
+                'fcm_options' => $this->fcmOptions,
+            ],
         ];
-        
-        if(!empty($this->package))
-        {
+
+        if (!empty($this->package)) {
             $payloads['restricted_package_name'] = $this->package;
         }
 
         if ($this->topic) {
-            $payloads['to'] = "/topics/{$this->topic}";
+            $payloads['topic'] = $this->topic;
         } else {
-            $payloads['registration_ids'] = $this->recipients;
+            $payloads['token'] = $this->recipients;
         }
 
         if ($this->timeToLive !== null && $this->timeToLive >= 0) {
-            $payloads['time_to_live'] = (int) $this->timeToLive;
+            $payloads['time_to_live'] = (int)$this->timeToLive;
         }
 
         $headers = [
-            'Authorization: key=' . $this->serverKey,
+            'Authorization: Bearer ' . $this->serverKey,
             'Content-Type: application/json',
         ];
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, self::ENDPOINT);
+        curl_setopt($ch, CURLOPT_URL, $this->endpoint);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
