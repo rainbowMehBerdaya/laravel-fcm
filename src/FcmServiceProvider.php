@@ -28,7 +28,7 @@ class FcmServiceProvider extends ServiceProvider
     {
         $this->app->bind('fcm', function ($app) {
             return new Fcm(
-                config('laravel-fcm.server_key')
+                config('laravel-fcm.project_id')
             );
         });
     }
